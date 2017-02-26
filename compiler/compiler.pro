@@ -180,6 +180,7 @@ messages/**)
 
 -keepclassmembers class org.jetbrains.org.objectweb.asm.Type {
     *** ARRAY;
+    *** OBJECT;
 }
 
 -keepclassmembers class org.jetbrains.org.objectweb.asm.ClassReader {
