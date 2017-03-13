@@ -39,6 +39,7 @@ open class KaptTask : AbstractCompile() {
     }
 
     lateinit var classesDir: File
+    lateinit var stubsDir: File
 
     @TaskAction
     override fun compile() {
@@ -48,6 +49,10 @@ open class KaptTask : AbstractCompile() {
 
         classesDir.deleteRecursively()
         classesDir.mkdirs()
+
+        // Kapt3 doesn't support incremental compilation so we should delete the existing stubs
+        stubsDir.deleteRecursively()
+        stubsDir.mkdirs()
 
         val sourceRoots = SourceRoots.ForJvm.create(getSource(), rawSourceRoots)
 
