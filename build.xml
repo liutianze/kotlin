@@ -788,7 +788,7 @@
     <target name="compiler-client-embeddable">
         <taskdef name="jarjar" classname="com.tonicsystems.jarjar.JarJarTask" classpath="dependencies/jarjar.jar"/>
 
-        <jarjar jarfile="${output}/kotlin-compiler-client-embeddable-before-shrink.jar">
+        <jarjar jarfile="${kotlin-home}/lib/kotlin-compiler-client-embeddable.jar">
             <zipfileset file="${kotlin-home}/build.txt" prefix="META-INF"/>
             <zipfileset src="${kotlin-home}/lib/kotlin-daemon-client.jar"/>
             <fileset dir="${output}/classes/compiler"
@@ -802,8 +802,6 @@
                 <attribute name="Class-Path" value="kotlin-stdlib.jar"/>
             </manifest>
         </jarjar>
-
-        <shrink configuration="${basedir}/compiler/compiler-client.pro"/>
     </target>
 
     <target name="android-extensions-compiler">
@@ -1383,7 +1381,7 @@
             depends="builtins,stdlib,kotlin-test,core,reflection,pack-runtime,pack-runtime-sources,script-runtime,mock-runtime-for-test"/>
 
     <target name="dist"
-            depends="clean,init,prepare-dist,preloader,runner,serialize-builtins,compiler,compiler-sources,ant-tools,runtime,kotlin-js-stdlib,android-extensions-compiler,allopen-compiler-plugin,noarg-compiler-plugin,sam-with-receiver-compiler-plugin,source-sections-compiler-plugin,annotation-processing-under-jdk8,daemon-client,kotlin-build-common-test"
+            depends="clean,init,prepare-dist,preloader,runner,serialize-builtins,compiler,compiler-sources,ant-tools,runtime,kotlin-js-stdlib,android-extensions-compiler,allopen-compiler-plugin,noarg-compiler-plugin,sam-with-receiver-compiler-plugin,source-sections-compiler-plugin,annotation-processing-under-jdk8,daemon-client,compiler-client-embeddable,kotlin-build-common-test"
             description="Builds redistributables from sources"/>
 
     <target name="dist-quick"
