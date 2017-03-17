@@ -81,8 +81,4 @@ compileKotlin {
     }
 }
 
-kotlin {
-    experimental {
-        coroutines 'enable'
-    }
-}
+kotlin.experimental.coroutines 'enable'
