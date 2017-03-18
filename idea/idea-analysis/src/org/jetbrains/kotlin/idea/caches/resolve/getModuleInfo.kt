@@ -29,6 +29,7 @@ import org.jetbrains.kotlin.asJava.elements.KtLightElement
 import org.jetbrains.kotlin.idea.caches.resolve.lightClasses.KtLightClassForDecompiledDeclaration
 import org.jetbrains.kotlin.idea.core.script.KotlinScriptConfigurationManager
 import org.jetbrains.kotlin.idea.util.ProjectRootsUtil
+import org.jetbrains.kotlin.idea.util.isKotlinBinary
 import org.jetbrains.kotlin.idea.util.isInSourceContentWithoutInjected
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
@@ -130,8 +131,13 @@ fun getModuleInfoByVirtualFile(project: Project, virtualFile: VirtualFile, treat
         return ScriptModuleInfo(project, virtualFile, scriptDefinition)
     }
 
-    if (KotlinScriptConfigurationManager.getInstance(project).getAllScriptsClasspathScope().contains(virtualFile)) {
+    val isBinary = virtualFile.isKotlinBinary()
+    val scriptConfigurationManager = KotlinScriptConfigurationManager.getInstance(project)
+    if ((isBinary && !treatAsLibrarySource) && virtualFile in scriptConfigurationManager.getAllScriptsClasspathScope()) {
         return ScriptDependenciesModuleInfo(project, null, null)
+    }
+    if ((!isBinary || treatAsLibrarySource) && virtualFile in scriptConfigurationManager.getAllLibrarySourcesScope()) {
+        return ScriptDependenciesSourceModuleInfo(project)
     }
 
     return NotUnderContentRootModuleInfo
