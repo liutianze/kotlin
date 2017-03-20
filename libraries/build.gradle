@@ -93,11 +93,17 @@ static def commonJvmProjectConfiguration(Project project) {
             from javadoc.destinationDir
         }
 
-        compileKotlin.compilerJarFile = bootstrapCompilerFile
-        compileTestKotlin.compilerJarFile = bootstrapCompilerFile
+        tasks.withType(JavaCompile) {
+            sourceCompatibility = 1.6
+            targetCompatibility = 1.6
+            options.fork = true
+            options.forkOptions.executable = "${JDK_16}/bin/javac"
+        }
 
-        compileKotlin.kotlinOptions.jdkHome = JDK_16
-        compileTestKotlin.kotlinOptions.jdkHome = JDK_16
+        tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
+            compilerJarFile = bootstrapCompilerFile
+            kotlinOptions.jdkHome = JDK_16
+        }
 
         test {
             executable = "$JDK_16/bin/java"
