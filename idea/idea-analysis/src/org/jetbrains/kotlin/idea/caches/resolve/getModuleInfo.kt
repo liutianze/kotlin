@@ -82,7 +82,11 @@ private fun PsiElement.getModuleInfo(onFailure: (String) -> IdeaModuleInfo?): Id
     )
 }
 
-fun getModuleInfoByVirtualFile(project: Project, virtualFile: VirtualFile, treatAsLibrarySource: Boolean): IdeaModuleInfo {
+fun getModuleInfoByVirtualFile(
+        project: Project, virtualFile: VirtualFile
+): IdeaModuleInfo = getModuleInfoByVirtualFile(project, virtualFile, treatAsLibrarySource = false)
+
+private fun getModuleInfoByVirtualFile(project: Project, virtualFile: VirtualFile, treatAsLibrarySource: Boolean): IdeaModuleInfo {
     val projectFileIndex = ProjectFileIndex.SERVICE.getInstance(project)
 
     val module = projectFileIndex.getModuleForFile(virtualFile)
@@ -133,10 +137,15 @@ fun getModuleInfoByVirtualFile(project: Project, virtualFile: VirtualFile, treat
 
     val isBinary = virtualFile.isKotlinBinary()
     val scriptConfigurationManager = KotlinScriptConfigurationManager.getInstance(project)
-    if ((isBinary && !treatAsLibrarySource) && virtualFile in scriptConfigurationManager.getAllScriptsClasspathScope()) {
-        return ScriptDependenciesModuleInfo(project, null, null)
+    if (isBinary && virtualFile in scriptConfigurationManager.getAllScriptsClasspathScope()) {
+        if (treatAsLibrarySource) {
+            return ScriptDependenciesSourceModuleInfo(project)
+        }
+        else {
+            return ScriptDependenciesModuleInfo(project, null, null)
+        }
     }
-    if ((!isBinary || treatAsLibrarySource) && virtualFile in scriptConfigurationManager.getAllLibrarySourcesScope()) {
+    if (!isBinary && virtualFile in scriptConfigurationManager.getAllLibrarySourcesScope()) {
         return ScriptDependenciesSourceModuleInfo(project)
     }
 
