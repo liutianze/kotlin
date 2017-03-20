@@ -1816,16 +1816,16 @@ public class BasicExpressionTypingVisitor extends ExpressionTypingVisitor {
 
         Call call = CallMaker.makeCallForCollectionLiteral(collectionLiteralExpression);
 
-        OverloadResolutionResults<FunctionDescriptor> functionResults = components.callResolver.resolveCallWithGivenName(
+        OverloadResolutionResults<FunctionDescriptor> resolutionResults = components.callResolver.resolveCallWithGivenName(
                 context, call, collectionLiteralExpression, callName);
 
-        if (!functionResults.isSuccess() || !functionResults.isSingleResult()) {
+        if (!resolutionResults.isSingleResult()) {
             // TODO: report an error
             return TypeInfoFactoryKt.noTypeInfo(context);
         }
 
-        context.trace.record(COLLECTION_LITERAL_CALL, collectionLiteralExpression, functionResults.getResultingCall());
-        return TypeInfoFactoryKt.createTypeInfo(functionResults.getResultingDescriptor().getReturnType(), context);
+        context.trace.record(COLLECTION_LITERAL_CALL, collectionLiteralExpression, resolutionResults.getResultingCall());
+        return TypeInfoFactoryKt.createTypeInfo(resolutionResults.getResultingDescriptor().getReturnType(), context);
     }
 
     private static CollectionLiteralCall getCollectionLiteralCallBy(PrimitiveType primitiveType) {
