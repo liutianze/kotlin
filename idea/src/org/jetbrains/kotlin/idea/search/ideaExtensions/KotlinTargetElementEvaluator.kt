@@ -24,18 +24,16 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiReference
 import com.intellij.util.BitUtil
 import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
-import org.jetbrains.kotlin.idea.caches.resolve.analyze
 import org.jetbrains.kotlin.idea.intentions.isAutoCreatedItUsage
 import org.jetbrains.kotlin.idea.references.KtDestructuringDeclarationReference
-import org.jetbrains.kotlin.idea.references.mainReference
+import org.jetbrains.kotlin.idea.references.resolveMainReferenceToDescriptors
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.containingClassOrObject
 import org.jetbrains.kotlin.psi.psiUtil.getNonStrictParentOfType
 import org.jetbrains.kotlin.psi.psiUtil.getParentOfTypeAndBranch
 import org.jetbrains.kotlin.psi.psiUtil.isAbstract
 import org.jetbrains.kotlin.resolve.descriptorUtil.isExtension
-import org.jetbrains.kotlin.resolve.lazy.BodyResolveMode
-import org.jetbrains.kotlin.resolve.source.PsiSourceElement
+import org.jetbrains.kotlin.resolve.source.getPsi
 
 class KotlinTargetElementEvaluator : TargetElementEvaluatorEx {
     override fun includeSelfInGotoImplementation(element: PsiElement): Boolean = !(element is KtClass && element.isAbstract())
@@ -56,37 +54,31 @@ class KotlinTargetElementEvaluator : TargetElementEvaluatorEx {
 
         if (BitUtil.isSet(flags, TargetElementUtil.REFERENCED_ELEMENT_ACCEPTED)) {
             val element: PsiElement = ref.element
-            if (element.text == "it") {
-                if (element is KtNameReferenceExpression && isAutoCreatedItUsage(element)) {
-                    val itDescriptor = element.mainReference.resolveToDescriptors(
-                            element.analyze(bodyResolveMode = BodyResolveMode.PARTIAL)).singleOrNull()
-                    if (itDescriptor != null) {
-                        val simpleFunctionDescriptor = itDescriptor.containingDeclaration as? SimpleFunctionDescriptor
-                        if (simpleFunctionDescriptor != null) {
-                            val funSource = simpleFunctionDescriptor.source
-                            if (funSource is PsiSourceElement) {
-                                val psi = funSource.psi?.parent as? KtLambdaExpression
-                                if (psi != null) {
-                                    return psi.leftCurlyBrace.treeNext.psi // Place caret after the open curly brace
+            when (element.text) {
+                "it" -> {
+                    if (element is KtNameReferenceExpression && isAutoCreatedItUsage(element)) {
+                        val itDescriptor = element.resolveMainReferenceToDescriptors().singleOrNull()
+                        if (itDescriptor != null) {
+                            val simpleFunctionDescriptor = itDescriptor.containingDeclaration as? SimpleFunctionDescriptor
+                            if (simpleFunctionDescriptor != null) {
+                                val funSource = simpleFunctionDescriptor.source.getPsi()?.parent as? KtLambdaExpression
+                                if (funSource != null) {
+                                    return funSource.leftCurlyBrace.treeNext?.psi // Place caret after the open curly brace
                                 }
                             }
                         }
                     }
-
                 }
-            }
 
-            if (element.text == "this") {
-                if (element is KtNameReferenceExpression) {
-                    val target = element.mainReference.resolveToDescriptors(element.analyze(bodyResolveMode = BodyResolveMode.PARTIAL)).singleOrNull()
-                    val simpleFunctionDescriptor = target as? SimpleFunctionDescriptor
+                "this" -> {
+                    if (element is KtNameReferenceExpression) {
+                        val target = element.resolveMainReferenceToDescriptors().singleOrNull()
+                        val simpleFunctionDescriptor = target as? SimpleFunctionDescriptor
 
-                    if (simpleFunctionDescriptor != null && simpleFunctionDescriptor.isExtension) {
-                        val funSource = simpleFunctionDescriptor.source
-                        if (funSource is PsiSourceElement) {
-                            val psi = funSource.psi
-                            if (psi is KtNamedFunction) {
-                                return psi.receiverTypeReference
+                        if (simpleFunctionDescriptor != null && simpleFunctionDescriptor.isExtension) {
+                            val funSource = simpleFunctionDescriptor.source.getPsi()
+                            if (funSource is KtNamedFunction) {
+                                return funSource.receiverTypeReference
                             }
                         }
                     }
