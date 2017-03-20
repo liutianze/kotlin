@@ -29,6 +29,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.kotlin.KtNodeTypes;
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns;
+import org.jetbrains.kotlin.builtins.PrimitiveType;
 import org.jetbrains.kotlin.config.LanguageFeature;
 import org.jetbrains.kotlin.config.LanguageVersionSettings;
 import org.jetbrains.kotlin.descriptors.*;
@@ -36,6 +37,7 @@ import org.jetbrains.kotlin.diagnostics.Diagnostic;
 import org.jetbrains.kotlin.diagnostics.Errors;
 import org.jetbrains.kotlin.lexer.KtKeywordToken;
 import org.jetbrains.kotlin.lexer.KtTokens;
+import org.jetbrains.kotlin.name.FqNameUnsafe;
 import org.jetbrains.kotlin.name.Name;
 import org.jetbrains.kotlin.psi.*;
 import org.jetbrains.kotlin.psi.psiUtil.KtPsiUtilKt;
@@ -98,6 +100,27 @@ import static org.jetbrains.kotlin.types.expressions.TypeReconstructionUtil.reco
 
 @SuppressWarnings("SuspiciousMethodCalls")
 public class BasicExpressionTypingVisitor extends ExpressionTypingVisitor {
+    private enum CollectionLiteralCall {
+        ARRAY_OF_METHOD("arrayOf"),
+        BOOLEAN_ARRAY_OF_METHOD("booleanArrayOf"),
+        CHAR_ARRAY_OF_METHOD("charArrayOf"),
+        INT_ARRAY_OF_METHOD("intArrayOf"),
+        BYTE_ARRAY_OF_METHOD("byteArrayOf"),
+        SHORT_ARRAY_OF_METHOD("shortArrayOf"),
+        FLOAT_ARRAY_OF_METHOD("floatArrayOf"),
+        LONG_ARRAY_OF_METHOD("longArrayOf"),
+        DOUBLE_ARRAY_OF_METHOD("doubleArrayOf");
+
+        private final Name name;
+
+        CollectionLiteralCall(String callName) {
+            name = Name.identifier(callName);
+        }
+
+        public Name getName() {
+            return name;
+        }
+    }
 
     private static final TokenSet BARE_TYPES_ALLOWED = TokenSet.create(AS_KEYWORD, AS_SAFE);
 
@@ -1502,6 +1525,13 @@ public class BasicExpressionTypingVisitor extends ExpressionTypingVisitor {
     }
 
     @Override
+    public KotlinTypeInfo visitCollectionLiteralExpression(
+            @NotNull KtCollectionLiteralExpression expression, ExpressionTypingContext context
+    ) {
+        return resolveCollectionLiteralSpecialMethod(expression, context);
+    }
+
+    @Override
     public KotlinTypeInfo visitClass(@NotNull KtClass klass, ExpressionTypingContext context) {
         // analyze class in illegal position and write descriptor to trace but do not write to any scope
         components.localClassifierAnalyzer.processClassOrObject(
@@ -1760,5 +1790,75 @@ public class BasicExpressionTypingVisitor extends ExpressionTypingVisitor {
         traceForResolveResult.record(isGet ? INDEXED_LVALUE_GET : INDEXED_LVALUE_SET, arrayAccessExpression,
                                      functionResults.getResultingCall());
         return resultTypeInfo.replaceType(functionResults.getResultingDescriptor().getReturnType());
+    }
+
+    private KotlinTypeInfo resolveCollectionLiteralSpecialMethod(
+            @NotNull KtCollectionLiteralExpression collectionLiteralExpression,
+            @NotNull ExpressionTypingContext context
+    ) {
+        CollectionLiteralCall collectionLiteralCall;
+        KotlinType expectedType = context.expectedType;
+        if (NO_EXPECTED_TYPE == expectedType || !KotlinBuiltIns.isPrimitiveArray(expectedType)) {
+            collectionLiteralCall = CollectionLiteralCall.ARRAY_OF_METHOD;
+        }
+        else {
+            ClassifierDescriptor descriptor = expectedType.getConstructor().getDeclarationDescriptor();
+            assert descriptor != null : "Classifier for " + expectedType + " must not be null as it should be represented as array";
+
+            FqNameUnsafe arrayFqName = DescriptorUtils.getFqName(descriptor);
+            PrimitiveType primitiveType = KotlinBuiltIns.getPrimitiveTypeByArrayClassFqName(arrayFqName);
+
+            collectionLiteralCall = getCollectionLiteralCallBy(primitiveType);
+        }
+
+        Name callName = collectionLiteralCall.getName();
+        context.trace.record(COLLECTION_LITERAL_CALL_NAME, collectionLiteralExpression, callName);
+
+        Call call = CallMaker.makeCallForCollectionLiteral(collectionLiteralExpression);
+
+        OverloadResolutionResults<FunctionDescriptor> functionResults = components.callResolver.resolveCallWithGivenName(
+                context, call, collectionLiteralExpression, callName);
+
+        if (!functionResults.isSuccess() || !functionResults.isSingleResult()) {
+            // TODO: report an error
+            return TypeInfoFactoryKt.noTypeInfo(context);
+        }
+
+        context.trace.record(COLLECTION_LITERAL_CALL, collectionLiteralExpression, functionResults.getResultingCall());
+        return TypeInfoFactoryKt.createTypeInfo(functionResults.getResultingDescriptor().getReturnType(), context);
+    }
+
+    private static CollectionLiteralCall getCollectionLiteralCallBy(PrimitiveType primitiveType) {
+        CollectionLiteralCall collectionLiteralCall;
+        switch (primitiveType) {
+            case BOOLEAN:
+                collectionLiteralCall = CollectionLiteralCall.BOOLEAN_ARRAY_OF_METHOD;
+                break;
+            case CHAR:
+                collectionLiteralCall = CollectionLiteralCall.CHAR_ARRAY_OF_METHOD;
+                break;
+            case BYTE:
+                collectionLiteralCall = CollectionLiteralCall.BYTE_ARRAY_OF_METHOD;
+                break;
+            case SHORT:
+                collectionLiteralCall = CollectionLiteralCall.SHORT_ARRAY_OF_METHOD;
+                break;
+            case INT:
+                collectionLiteralCall = CollectionLiteralCall.INT_ARRAY_OF_METHOD;
+                break;
+            case FLOAT:
+                collectionLiteralCall = CollectionLiteralCall.FLOAT_ARRAY_OF_METHOD;
+                break;
+            case LONG:
+                collectionLiteralCall = CollectionLiteralCall.LONG_ARRAY_OF_METHOD;
+                break;
+            case DOUBLE:
+                collectionLiteralCall = CollectionLiteralCall.DOUBLE_ARRAY_OF_METHOD;
+                break;
+            default:
+                collectionLiteralCall = CollectionLiteralCall.ARRAY_OF_METHOD;
+        }
+
+        return collectionLiteralCall;
     }
 }

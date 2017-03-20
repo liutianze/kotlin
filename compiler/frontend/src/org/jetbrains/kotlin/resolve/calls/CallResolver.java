@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2016 JetBrains s.r.o.
+ * Copyright 2010-2017 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -261,6 +261,14 @@ public class CallResolver {
             KtArrayAccessExpression arrayAccessExpression = (KtArrayAccessExpression) context.call.getCallElement();
             return computeTasksAndResolveCall(
                     context, name, arrayAccessExpression,
+                    NewResolutionOldInference.ResolutionKind.Function.INSTANCE);
+        }
+        else if (callType == Call.CallType.COLLECTION_LITERAL_CALL) {
+            KtCollectionLiteralExpression collectionLiteralExpression = (KtCollectionLiteralExpression) context.call.getCallElement();
+            Name name = context.trace.get(BindingContext.COLLECTION_LITERAL_CALL_NAME, collectionLiteralExpression);
+            assert name != null : "Name for call type " + callType + " must not be null";
+            return computeTasksAndResolveCall(
+                    context, name, collectionLiteralExpression,
                     NewResolutionOldInference.ResolutionKind.Function.INSTANCE);
         }
 
