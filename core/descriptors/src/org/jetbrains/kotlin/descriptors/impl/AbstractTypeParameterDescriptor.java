@@ -179,7 +179,7 @@ public abstract class AbstractTypeParameterDescriptor extends DeclarationDescrip
 
         @NotNull
         @Override
-        public ClassifierDescriptor getDeclarationDescriptor() {
+        public TypeParameterDescriptor getDeclarationDescriptor() {
             return AbstractTypeParameterDescriptor.this;
         }
 
@@ -209,6 +209,25 @@ public abstract class AbstractTypeParameterDescriptor extends DeclarationDescrip
         @Override
         protected KotlinType defaultSupertypeIfEmpty() {
             return ErrorUtils.createErrorType("Cyclic upper bounds");
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof TypeParameterTypeConstructor)) return false;
+
+            TypeParameterDescriptor other = ((TypeParameterTypeConstructor) obj).getDeclarationDescriptor();
+            return getIndex() == other.getIndex() &&
+                   areEqualContainers(AbstractTypeParameterDescriptor.this, other);
+        }
+
+        private boolean areEqualContainers(
+                @NotNull TypeParameterDescriptor thisTypeParameter,
+                @NotNull TypeParameterDescriptor otherTypeParameter
+        ) {
+            DeclarationDescriptor thisContainer = thisTypeParameter.getContainingDeclaration();
+            DeclarationDescriptor otherContainer = otherTypeParameter.getContainingDeclaration();
+            return thisContainer instanceof ClassDescriptor && otherContainer instanceof ClassDescriptor &&
+                   ((ClassDescriptor) thisContainer).getTypeConstructor().equals(((ClassDescriptor) otherContainer).getTypeConstructor());
         }
     }
 }
