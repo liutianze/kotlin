@@ -64,8 +64,8 @@ object SourceNavigationHelper {
 
     private fun targetScope(declaration: KtNamedDeclaration, navigationKind: NavigationKind): GlobalSearchScope? {
         val containingFile = declaration.containingKtFile
-        val vFile = containingFile.virtualFile ?: return GlobalSearchScope.EMPTY_SCOPE
-        val fromModuleInfo = getModuleInfoByVirtualFile(declaration.project, vFile, treatAsLibrarySource = false)
+        val vFile = containingFile.virtualFile ?: return null
+        val fromModuleInfo = getModuleInfoByVirtualFile(declaration.project, vFile)
 
         return when (navigationKind) {
             NavigationKind.CLASS_FILES_TO_SOURCES -> (fromModuleInfo as? BinaryModuleInfo)?.sourcesModuleInfo?.sourceScope()
