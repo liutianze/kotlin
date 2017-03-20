@@ -103,13 +103,10 @@ class ScriptDependenciesModuleInfo(
         get() = ScriptDependenciesSourceModuleInfo(project)
 }
 
-class ScriptDependenciesSourceModuleInfo(
+data class ScriptDependenciesSourceModuleInfo(
         val project: Project
 ): IdeaModuleInfo, SourceForBinaryModuleInfo {
     override val name = Name.special("<Source for script dependencies>")
-
-    override fun hashCode() = project.hashCode()
-    override fun equals(other: Any?): Boolean = other is ScriptDependenciesSourceModuleInfo && this.project == other.project
 
     override val binariesModuleInfo: ScriptDependenciesModuleInfo
         get() = ScriptDependenciesModuleInfo(project, null, null)
