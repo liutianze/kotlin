@@ -13,6 +13,6 @@ interface Foo
 
 fun foo(a: Any) {}
 
-fun Foo.<caret>bar() {
+fun <caret>Foo.bar() {
     foo(this)
 }

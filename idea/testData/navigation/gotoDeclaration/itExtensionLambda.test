@@ -17,7 +17,7 @@ interface Bar
 fun foo(a: Foo.(Bar) -> Unit) {}
 
 fun bar() {
-    foo {
-        <caret>it
+    foo {<caret>
+        it
     }
 }

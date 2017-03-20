@@ -17,7 +17,7 @@ fun <T> some(a: T, f: (T) -> Unit) {}
 fun foo(a: Any) {}
 
 fun baz() {
-    some(Foo()) {
-        foo(it<caret>)
+    some(Foo()) {<caret>
+        foo(it)
     }
 }
